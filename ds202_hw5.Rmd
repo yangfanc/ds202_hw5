@@ -1,0 +1,187 @@
+---
+title: "ds202_hw5"
+author: "YangfanCai/yangfanc"
+date: "3/31/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1.The complete dataset is too large. Download and import the alcohol sales data for Ames only:
+a.Go to https://data.iowa.gov/Sales-Distribution/2019-Iowa-Liquor-Sales/38x4-vs5h
+b.Click Filter – Filter – Go advanced now
+c.Add a New Filter Condition: City is Ames.
+d.Export – CSV – Download
+e.Use readr::read_csv to import.
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+if (!require("tidyverse")) {
+install.packages("tidyverse")
+}
+if (!require("dplyr")) {
+install.packages("dplyr")
+}
+if (!require("ggplot2")) {
+install.packages("ggplot2")
+}
+if (!require("readr")) {
+install.packages("readr")
+}
+if (!require("lubridate")) {
+install.packages("lubridate")
+}
+```
+
+
+```{r}
+ames <- readr::read_csv('~/Downloads/2019_Iowa_Liquor_Sales.csv')
+
+```
+
+
+# 2.Data cleaning:
+a. extract geographic latitude and longitude from the variable Store Location
+b. make sure the variables are in the correct type, by converting incorrect variable types.
+c. extract year, month and day from the variable Date as separate columns.
+```{r}
+#a
+amescleana <- ames %>%
+  separate('Store Location', c("Address", "City", "Coordinates"), sep = "\n") %>%
+  mutate(Coordinates = gsub("[()]", "", Coordinates)) %>%
+  separate("Coordinates", c("Latitude", "Longitude"), sep = ",")
+amescleana
+```
+
+
+```{r}
+amesclean1 <- ames %>% 
+  separate(`Store Location`, c('Point', 'long', 'lat'), sep=' ') %>% 
+  separate(long, c('extra', 'long'), sep = '\\(') %>% 
+  separate(lat, c('lat', 'extra2'), sep = '\\)') %>% 
+  select(-extra, -extra2, -Point)
+amesclean1
+```
+
+
+
+
+
+
+```{r}
+#b
+amesb <- ames %>% 
+  separate(`Store Location`, c('Point', 'long', 'lat'), sep=' ') %>% 
+  separate(long, c('extra', 'long'), sep = '\\(') %>% 
+  separate(lat, c('lat', 'extra2'), sep = '\\)') %>% 
+  select(-extra, -extra2, -Point)
+amesb
+```
+
+
+```{r}
+ames2 <- amesclean1 %>% 
+  mutate(long = as.numeric(long),
+         lat = as.numeric(lat))
+ames2
+```
+
+
+
+```{r}
+#c
+ames3 <- ames2 %>% 
+  separate(Date, into = c('Month','Day','Year'), sep = '/') %>% 
+  mutate(Month = as.integer(Month),
+         Day = as.integer(Day),
+         Year = as.integer(Year))
+ames3
+```
+
+
+# 3.First overview:
+a.Plot a scatterplot of lat and long of store locations.
+
+b.Provide a visual breakdown of the liquor category (by Category Name). Include volume sold in the breakdown.
+
+
+```{r}
+#a
+ames3 %>% ggplot(aes(x = long, y = lat))+
+  geom_point(na.rm = TRUE) + geom_jitter(na.rm = TRUE)+
+  ggtitle("Scatterplot of Latitude Vs Longitude")+ xlab("Longitude")+ ylab("Latitude") 
+```
+
+
+
+
+
+
+```{r}
+#b
+ames3 %>% ggplot(aes(x = `Category Name`, y = `Volume Sold (Liters)`))+
+  geom_line(aes(color = `Category Name`))+ theme(legend.position = "none", axis.text.x = element_text(angle = 45))+ coord_flip()+ 
+  ggtitle("Amount_of_Alcohol_Sold_by_Category_Name")+ xlab("Category_Name")+ ylab("Amount_in_Liters_Sold") 
+```
+
+
+# 4. Principal Component Analysis for Functional Data on Riemannian Manifolds and Spheres
+
+```{r}
+ames4 <- ames3 %>% 
+  group_by(Year, Month, Day) %>% 
+  summarise(`Total Sales`=n(),
+            `Volume`  = sum(`Volume Sold (Gallons)`),
+            `Money Spent` = sum(`Sale (Dollars)`))
+ames4
+```
+
+
+
+
+```{r}
+amesF  <- ames3 %>% group_by(Month,Day) %>% summarize(Number=n(),Quantity=sum(`Volume Sold (Gallons)`),Revenue = sum(`Sale (Dollars)`))
+summary(amesF)
+```
+
+
+
+
+
+
+# 5.Plot volume sold by day (use a scatterplot of volume by day and facet by month). Discover any trend with the help of geom_smooth. Describe any patterns.
+```{r}
+ames4 %>% 
+  ggplot(aes(x=Day, y=Volume))+geom_point()+geom_smooth(se = FALSE)+facet_wrap(~Month)+theme_bw()
+```
+
+
+```{r}
+amesF %>% ggplot(aes(x=Day,y=Quantity))+geom_jitter()+geom_smooth(method="lm")+facet_wrap(~Month)
+```
+
+
+
+
+
+# 6.Find the dates for ISU football home games in Fall 2019. Can you see a pattern?
+```{r}
+ames4 %>% 
+  filter(Month %in% c(8,9,10,11)) %>% 
+  ggplot(aes(x=Day, y=Volume))+geom_point()+geom_smooth(se = FALSE)+facet_wrap(~Month)+theme_bw()
+```
+
+```{r}
+ggplot(ames3, aes(x=Day,y=`Volume Sold (Liters)`)) +
+  geom_col() +
+  facet_wrap(vars(Month)) + 
+  theme(axis.text.x = element_blank()) +
+  labs(title = "Volume Sold by Day faceted by Month")
+```
+
+
+The dates for the football season were 8/31, 9/14, 9/21, 9/28, 10/5, 10/12, 10/19, 10/26, 11/9, 11/16, 11/23, and 11/30.There are always big increases in sales the few days prior to home football games.
