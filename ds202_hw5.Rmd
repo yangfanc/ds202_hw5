@@ -140,6 +140,16 @@ ames4 <- ames3 %>%
 ames4
 ```
 
+```{r}
+ames3 %>%
+  group_by(`Bottles Sold`) %>%
+  ggplot(aes(x=Day, y=`Volume Sold (Liters)`)) + geom_point() +facet_wrap(~Month)
+q4 <- ames3 %>% filter(Year == 2019)
+q41 <- q4%>% group_by(Day,Month) %>% 
+  summarise(sumBottleSold = sum(`Bottles Sold`), sumSale = sum(`Sale (Dollars)`),
+                                sumVolumeSold = sum(`Volume Sold (Liters)`)) 
+q41
+```
 
 
 
@@ -180,7 +190,7 @@ ggplot(ames3, aes(x=Day,y=`Volume Sold (Liters)`)) +
   geom_col() +
   facet_wrap(vars(Month)) + 
   theme(axis.text.x = element_blank()) +
-  labs(title = "Volume Sold by Day faceted by Month")
+  labs(title = "Volume_Sold_by_Day_faceted_by_Month")
 ```
 
 
